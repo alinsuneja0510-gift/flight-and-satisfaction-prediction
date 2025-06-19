@@ -101,19 +101,28 @@ if page == "Flight Price Prediction":
 elif page == "Customer Satisfaction Prediction":
     with st.container():
         st.header("🧑‍✈️ Customer Satisfaction Prediction")
-        df = pd.read_csv("data/Passenger_Satisfaction.csv").dropna()
+        original_df = pd.read_csv("data/Passenger_Satisfaction.csv").dropna()
         for col in ['Gender', 'Customer Type', 'Type of Travel', 'Class', 'satisfaction']:
-            df[col] = le.fit_transform(df[col])
+            original_df[col] = le.fit_transform(original_df[col])
 
         scaler = load_model_safe("customer_satisfaction_prediction/models/scaler_compressed.pkl")
+
         st.subheader("✍️ Input Features")
-        sample = df.drop(['id', 'satisfaction'], axis=1).iloc[[0]].copy()
+        sample = original_df.drop(['id', 'satisfaction'], axis=1).iloc[[0]].copy()
+        user_input = {}
+
+        categorical_columns = ['Gender', 'Customer Type', 'Type of Travel', 'Class']
 
         for col in sample.columns:
-            if sample[col].dtype in [np.int64, np.float64]:
-                sample[col] = st.number_input(f"{col}", value=float(sample[col].values[0]), key=f"input_{col}")
-            elif sample[col].dtype == object or len(df[col].unique()) < 10:
-                sample[col] = st.selectbox(f"{col}", options=sorted(df[col].unique()), key=f"input_{col}")
+            if col in categorical_columns:
+                categories = sorted(original_df[col].unique())
+                decoded = {i: val for i, val in enumerate(categories)}
+                encoded = {v: k for k, v in decoded.items()}
+                selected_label = st.selectbox(f"{col}", options=list(decoded.values()), key=f"input_{col}")
+                user_input[col] = selected_label
+                sample[col] = encoded[selected_label]
+            else:
+                sample[col] = st.number_input(f"{col}", value=float(sample[col].values[0]), key=f"input_{col}", format="%.2f")
 
         input_scaled = scaler.transform(sample) if scaler else sample
 
