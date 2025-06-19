@@ -6,7 +6,7 @@ from datetime import datetime
 from sklearn.preprocessing import LabelEncoder
 
 # Compatibility fix for joblib with Streamlit Cloud
-if __name__ != "__main__":
+if __name__ != "__main__": 
     import __main__
     __main__.__file__ = "app.py"
 
@@ -82,7 +82,8 @@ if page == "Flight Price Prediction":
     })
 
     model_name = st.selectbox("Select Model", ["linear_regression", "random_forest", "xgboost", "gradient_boosting", "knn_regressor"])
-    model = load_model_safe(f"flight_price_prediction/models/{model_name}.pkl")
+    model_path = f"flight_price_prediction/models/{model_name}_compressed.pkl"
+    model = load_model_safe(model_path)
 
     if model:
         pred = model.predict(input_data)[0]
@@ -100,7 +101,7 @@ elif page == "Customer Satisfaction Prediction":
     for col in ['Gender', 'Customer Type', 'Type of Travel', 'Class', 'satisfaction']:
         df[col] = le.fit_transform(df[col])
 
-    scaler = load_model_safe("customer_satisfaction_prediction/models/scaler.pkl")
+    scaler = load_model_safe("customer_satisfaction_prediction/models/scaler_compressed.pkl")
 
     st.subheader("✍️ Input Features")
     sample = df.drop(['id', 'satisfaction'], axis=1).iloc[[0]].copy()
@@ -117,12 +118,11 @@ elif page == "Customer Satisfaction Prediction":
     preds, probs = {}, {}
 
     for model_name in model_names:
-        model = load_model_safe(f"customer_satisfaction_prediction/models/{model_name}.pkl")
+        model_path = f"customer_satisfaction_prediction/models/{model_name}_compressed.pkl"
+        model = load_model_safe(model_path)
         if model:
-            pred = model.predict(input_scaled)[0]
-            prob = model.predict_proba(input_scaled)[0][1]
-            preds[model_name] = pred
-            probs[model_name] = prob
+            preds[model_name] = model.predict(input_scaled)[0]
+            probs[model_name] = model.predict_proba(input_scaled)[0][1]
 
     st.subheader("📊 Model Predictions")
     for name in preds:

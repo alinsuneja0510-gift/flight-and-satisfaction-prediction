@@ -1,2 +1,24 @@
-# Ignore all model files
+# Byte-compiled / cache
+__pycache__/
+*.py[cod]
 *.pkl
+*.joblib
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# Environment files
+.env
+.venv/
+env/
+venv/
+
+# Streamlit cache
+.streamlit/
+
+# VS Code settings
+.vscode/
+
+# OS files
+.DS_Store
+Thumbs.db
