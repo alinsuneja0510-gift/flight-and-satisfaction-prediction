@@ -64,20 +64,20 @@ if page == "Flight Price Prediction":
         for col in ['Airline', 'Source', 'Destination', 'Route', 'Total_Stops', 'Additional_Info']:
             df[col] = le.fit_transform(df[col])
 
-        st.subheader("✍️ Input Features")
-        col1, col2 = st.columns(2)
-        with col1:
-            airline = st.selectbox("Airline", df['Airline'].unique(), key="airline")
-            source = st.selectbox("Source", df['Source'].unique(), key="source")
-            destination = st.selectbox("Destination", df['Destination'].unique(), key="destination")
-            route = st.selectbox("Route", df['Route'].unique(), key="route")
-        with col2:
-            stops = st.selectbox("Total Stops", df['Total_Stops'].unique(), key="stops")
-            day = st.slider("Journey Day", 1, 31, 15, key="journey_day")
-            month = st.slider("Journey Month", 1, 12, 6, key="journey_month")
-            dep_hour = st.slider("Departure Hour", 0, 23, 10, key="dep_hour")
-            arr_hour = st.slider("Arrival Hour", 0, 23, 14, key="arr_hour")
-            duration = st.slider("Duration (mins)", 30, 1000, 180, key="duration")
+        with st.expander("✍️ Input Flight Details", expanded=True):
+            col1, col2 = st.columns(2)
+            with col1:
+                airline = st.selectbox("Airline", df['Airline'].unique(), key="airline")
+                source = st.selectbox("Source", df['Source'].unique(), key="source")
+                destination = st.selectbox("Destination", df['Destination'].unique(), key="destination")
+                route = st.selectbox("Route", df['Route'].unique(), key="route")
+            with col2:
+                stops = st.selectbox("Total Stops", df['Total_Stops'].unique(), key="stops")
+                day = st.slider("Journey Day", 1, 31, 15, key="journey_day")
+                month = st.slider("Journey Month", 1, 12, 6, key="journey_month")
+                dep_hour = st.slider("Departure Hour", 0, 23, 10, key="dep_hour")
+                arr_hour = st.slider("Arrival Hour", 0, 23, 14, key="arr_hour")
+                duration = st.slider("Duration (mins)", 30, 1000, 180, key="duration")
 
         input_data = pd.DataFrame({
             'Airline': [airline], 'Source': [source], 'Destination': [destination],
@@ -92,11 +92,14 @@ if page == "Flight Price Prediction":
         model_path = f"flight_price_prediction/models/{model_name}_compressed.pkl"
         model = load_model_safe(model_path)
 
-        if model:
-            pred = model.predict(input_data)[0]
-            st.success(f"💰 Predicted Flight Price: ₹{int(pred)}")
-            st.download_button("📥 Download Prediction", str(int(pred)), file_name="flight_price.txt")
-            st.session_state['history'].append({"project": "Flight", "prediction": int(pred)})
+        if model is not None:
+            try:
+                pred = model.predict(input_data)[0]
+                st.success(f"💰 Predicted Flight Price: ₹{int(pred)}")
+                st.download_button("📥 Download Prediction", str(int(pred)), file_name="flight_price.txt")
+                st.session_state['history'].append({"project": "Flight", "prediction": int(pred)})
+            except Exception as e:
+                st.error(f"❌ Prediction failed: {e}")
 
 elif page == "Customer Satisfaction Prediction":
     with st.container():
@@ -113,42 +116,48 @@ elif page == "Customer Satisfaction Prediction":
 
         categorical_columns = ['Gender', 'Customer Type', 'Type of Travel', 'Class']
 
-        for col in sample.columns:
-            if col in categorical_columns:
-                categories = sorted(original_df[col].unique())
-                decoded = {i: val for i, val in enumerate(categories)}
-                encoded = {v: k for k, v in decoded.items()}
-                selected_label = st.selectbox(f"{col}", options=list(decoded.values()), key=f"input_{col}")
-                user_input[col] = selected_label
-                sample[col] = encoded[selected_label]
-            else:
-                sample[col] = st.number_input(f"{col}", value=float(sample[col].values[0]), key=f"input_{col}", format="%.2f")
+        with st.form("customer_form"):
+            for col in sample.columns:
+                if col in categorical_columns:
+                    categories = sorted(original_df[col].unique())
+                    decoded = {i: val for i, val in enumerate(categories)}
+                    encoded = {v: k for k, v in decoded.items()}
+                    selected_label = st.selectbox(f"{col}", options=list(decoded.values()), key=f"input_{col}")
+                    user_input[col] = selected_label
+                    sample[col] = encoded[selected_label]
+                else:
+                    sample[col] = st.slider(f"{col}", min_value=0.0, max_value=100.0, value=float(sample[col].values[0]), step=1.0, key=f"input_{col}")
+            submitted = st.form_submit_button("Submit")
 
-        input_scaled = scaler.transform(sample) if scaler else sample
+        if submitted:
+            input_scaled = scaler.transform(sample) if scaler else sample
 
-        model_names = ["logistic_regression", "random_forest", "xgboost", "gradient_boosting", "knn"]
-        preds, probs = {}, {}
+            model_names = ["logistic_regression", "random_forest", "xgboost", "gradient_boosting", "knn"]
+            preds, probs = {}, {}
 
-        for model_name in model_names:
-            model_path = f"customer_satisfaction_prediction/models/{model_name}_compressed.pkl"
-            model = load_model_safe(model_path)
-            if model:
-                preds[model_name] = model.predict(input_scaled)[0]
-                probs[model_name] = model.predict_proba(input_scaled)[0][1]
+            for model_name in model_names:
+                model_path = f"customer_satisfaction_prediction/models/{model_name}_compressed.pkl"
+                model = load_model_safe(model_path)
+                if model:
+                    try:
+                        preds[model_name] = model.predict(input_scaled)[0]
+                        probs[model_name] = model.predict_proba(input_scaled)[0][1]
+                    except Exception as e:
+                        st.error(f"❌ Prediction failed for {model_name}: {e}")
 
-        st.subheader("📊 Model Predictions")
-        for name in preds:
-            st.write(f"🔹 **{name}**: {'✅ Satisfied' if preds[name] else '❌ Not Satisfied'} | Probability: {probs[name]:.2f}")
+            if preds:
+                st.subheader("📊 Model Predictions")
+                for name in preds:
+                    st.write(f"🔹 **{name}**: {'✅ Satisfied' if preds[name] else '❌ Not Satisfied'} | Probability: {probs[name]:.2f}")
 
-        if preds:
-            final_vote = int(sum(preds.values()) >= 3)
-            result = "Satisfied" if final_vote else "Not Satisfied"
-            st.markdown(f"### 🧮 Final Prediction: **{'✅ Satisfied' if final_vote else '❌ Not Satisfied'}**")
-            st.subheader("🔍 Top 3 Influential Features (Simulated)")
-            for name in preds:
-                st.write(f"**{name}:** Flight Distance, Age, Inflight wifi service")
-            st.download_button("📥 Download Satisfaction Prediction", result, file_name="satisfaction_result.txt")
-            st.session_state['history'].append({"project": "Satisfaction", "prediction": result})
+                final_vote = int(sum(preds.values()) >= 3)
+                result = "Satisfied" if final_vote else "Not Satisfied"
+                st.markdown(f"### 🧮 Final Prediction: **{'✅ Satisfied' if final_vote else '❌ Not Satisfied'}**")
+                st.subheader("🔍 Top 3 Influential Features (Simulated)")
+                for name in preds:
+                    st.write(f"**{name}:** Flight Distance, Age, Inflight wifi service")
+                st.download_button("📥 Download Satisfaction Prediction", result, file_name="satisfaction_result.txt")
+                st.session_state['history'].append({"project": "Satisfaction", "prediction": result})
 
 # 📦 Show Prediction History & CSV Download
 if st.session_state['history']:
