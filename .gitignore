@@ -22,3 +22,8 @@ venv/
 # OS files
 .DS_Store
 Thumbs.db
+
+# Better:
+*.pkl
+!flight_price_prediction/models/extra_trees_compressed.pkl
+!customer_satisfaction_prediction/models/extra_trees_compressed.pkl
