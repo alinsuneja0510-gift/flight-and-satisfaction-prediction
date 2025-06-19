@@ -88,7 +88,7 @@ if page == "Flight Price Prediction":
             'Duration_mins': [duration]
         })
 
-        model_name = st.selectbox("Select Model", ["linear_regression", "random_forest", "xgboost", "gradient_boosting", "knn_regressor"], key="flight_model")
+        model_name = st.selectbox("Select Model", ["linear_regression", "random_forest", "xgboost", "extra_trees", "knn_regressor"], key="flight_model")
         model_path = f"flight_price_prediction/models/{model_name}_compressed.pkl"
         model = load_model_safe(model_path)
 
@@ -132,7 +132,7 @@ elif page == "Customer Satisfaction Prediction":
         if submitted:
             input_scaled = scaler.transform(sample) if scaler else sample
 
-            model_names = ["logistic_regression", "random_forest", "xgboost", "gradient_boosting", "knn"]
+            model_names = ["logistic_regression", "random_forest", "xgboost", "extra_trees", "knn"]
             preds, probs = {}, {}
 
             for model_name in model_names:
